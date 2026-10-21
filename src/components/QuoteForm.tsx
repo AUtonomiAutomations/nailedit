@@ -1,8 +1,9 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Answers, Field, Pricing, Quote, TradeConfig } from '@/lib/trades/types';
 import { buildQuote, rangeText, URGENCY_OPTIONS } from '@/lib/pricing';
-import { getDistance, hasGoogle, loadGoogle, DISTANCE_SOURCE_LABEL, type DistanceResult } from '@/lib/distance';
+import { getDistance, DISTANCE_SOURCE_LABEL, type DistanceResult } from '@/lib/distance';
+import AddressField from './AddressField';
 import { floorLabel, waLink } from '@/lib/utils';
 import QuoteTicket from './QuoteTicket';
 
@@ -25,19 +26,6 @@ function defaults(t: TradeConfig): Answers {
     else a[f.key] = '';
   }
   return a;
-}
-
-function AddressInput({ id, value, onChange, placeholder, required }: { id: string; value: string; onChange: (v: string) => void; placeholder?: string; required?: boolean }) {
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (!hasGoogle() || !ref.current) return;
-    loadGoogle().then(() => {
-      const ac = new window.google.maps.places.Autocomplete(ref.current, { componentRestrictions: { country: 'il' }, fields: ['formatted_address'] });
-      ac.addListener('place_changed', () => { const p = ac.getPlace(); if (p?.formatted_address) onChange(p.formatted_address); });
-    }).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  return <input id={id} ref={ref} type="text" value={value} required={required} autoComplete="off" placeholder={placeholder || 'לדוגמה: הרצל 12, תל אביב'} onChange={(e) => onChange(e.target.value)} />;
 }
 
 export default function QuoteForm({ trade, pricing, businessName, businessPhone, onSubmit, demo = false }: {
@@ -117,7 +105,7 @@ function FieldView({ f, value, set, pricing }: { f: Field; value: any; set: (v: 
     case 'textarea':
       return <div className={cls}><label htmlFor={id}>{f.label} <span className="muted tiny">(לא חובה)</span></label><textarea id={id} placeholder={f.placeholder} value={value || ''} onChange={(e) => set(e.target.value)} /></div>;
     case 'address':
-      return <div className={cls}><label htmlFor={id}>{f.label}</label><AddressInput id={id} value={value || ''} onChange={set} placeholder={f.placeholder} required={f.required} /></div>;
+      return <AddressField id={id} label={f.label.replace(/\s*\(רחוב, מספר, עיר\)/, '')} value={value || ''} onChange={set} required={f.required} />;
     case 'floor':
       return <div className={cls}><label htmlFor={id}>{f.label}</label>
         <select id={id} value={value ?? 0} onChange={(e) => set(Number(e.target.value))}>

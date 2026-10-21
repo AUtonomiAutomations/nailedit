@@ -3,10 +3,12 @@ import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AuthShell from '@/components/AuthShell';
+import GoogleButton from '@/components/GoogleButton';
 import TradeIcon from '@/components/TradeIcon';
 import { TRADES, getTrade } from '@/lib/trades';
 import { db } from '@/lib/db';
 import { defaultPricing } from '@/lib/pricing';
+import { track } from '@/lib/track';
 
 function SignupInner() {
   const router = useRouter();
@@ -21,6 +23,7 @@ function SignupInner() {
 
   useEffect(() => {
     db().getSettings().then((s) => setTrialDays(s.trial_days)).catch(() => {});
+    track({ type: 'page_view', trade_slug: qs.get('trade') });
     // signed-in user without a business (e.g. after email confirmation) → only business details
     db().getUser().then(async (u) => {
       if (!u) return;
@@ -37,7 +40,8 @@ function SignupInner() {
     setBusy(true);
     try {
       if (!needsBusinessOnly) await db().signUp(f.email, f.password, f.contact);
-      await db().createBusiness({ trade_slug: t.slug, name: f.name.trim(), contact_name: f.contact.trim(), phone: f.phone.trim(), city: f.city.trim() || null, pricing: defaultPricing(t) });
+      const biz = await db().createBusiness({ trade_slug: t.slug, name: f.name.trim(), contact_name: f.contact.trim(), phone: f.phone.trim(), city: f.city.trim() || null, pricing: defaultPricing(t) });
+      track({ type: 'signup', business_id: biz.id, trade_slug: t.slug });
       router.push('/dashboard/pricing?welcome=1');
     } catch (e: any) { setErr(e?.message || 'ההרשמה נכשלה'); } finally { setBusy(false); }
   }
@@ -76,6 +80,7 @@ function SignupInner() {
     }>
       <h1 style={{ fontSize: 28, marginBottom: 4 }}>פתיחת חשבון ל{t.pro}</h1>
       <p className="muted" style={{ marginBottom: 18 }}>{needsBusinessOnly ? 'עוד רגע מסיימים – פרטי העסק' : 'דקה אחת וזה מוכן'}</p>
+      {!needsBusinessOnly && <div style={{ marginBottom: 14 }}><GoogleButton next={`/signup?trade=${t.slug}`} label="הרשמה מהירה עם Google" /></div>}
       <form onSubmit={submit} className="stack" style={{ gap: 14 }}>
         <div className="field"><label htmlFor="s-name">שם העסק</label><input id="s-name" type="text" required value={f.name} onChange={upd('name')} placeholder={`לדוגמה: ${t.pro === 'מובילים' ? 'הובלות המקצוענים' : 'אבי ' + t.name}`} /></div>
         <div className="form-grid">

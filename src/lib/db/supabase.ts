@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { AppSettings, Business, Plan, PublicBusiness, QuoteRequest, Repo, SessionUser } from './types';
+import type { AppSettings, Business, MetricsInput, Plan, PublicBusiness, QuoteRequest, Repo, SessionUser } from './types';
 import { slugify } from '../utils';
 
 function must<T>(r: { data: T; error: any }): T {
@@ -32,6 +32,31 @@ export function supabaseRepo(url: string, anonKey: string): Repo {
       return (await currentUser())!;
     },
     async signOut() { await sb.auth.signOut(); },
+    async signInWithGoogle(nextPath) {
+      const { error } = await sb.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}${nextPath}`, queryParams: { prompt: 'select_account' } },
+      });
+      if (error) throw new Error(error.message.includes('not enabled') ? 'כניסה עם Google עוד לא הופעלה' : error.message);
+    },
+    async track(e) {
+      // fire-and-forget: analytics must never break the page
+      try { await sb.from('events').insert(e); } catch { /* ignore */ }
+    },
+    async adminMetricsInput(days) {
+      const since = new Date(Date.now() - days * 86400000).toISOString();
+      const [b, p, r, e, si] = await Promise.all([
+        sb.from('businesses').select('*'),
+        sb.from('plans').select('*').order('sort_order'),
+        sb.from('quote_requests').select('business_id, trade_slug, status, created_at, final_price, quote').gte('created_at', since),
+        sb.from('events').select('type, path, trade_slug, business_id, session_id, created_at').gte('created_at', since).limit(50000),
+        sb.rpc('admin_last_sign_ins'),
+      ]);
+      return {
+        businesses: must(b) as Business[], plans: must(p) as Plan[], requests: must(r) as any,
+        events: must(e) as any, signIns: must(si) as any,
+      } satisfies MetricsInput;
+    },
 
     async getSettings() {
       return must(await sb.from('app_settings').select('trial_days, trial_plan_id, updated_at').single()) as AppSettings;

@@ -235,3 +235,21 @@ textarea { min-height: 84px; resize: vertical; }
 .cta-band .btn { background: var(--ink); color: var(--bg); }
 .site-footer { padding-block: 36px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
 .demo-frame { border: 2px dashed var(--line); border-radius: 18px; padding: 18px; background: var(--bg); }
+
+/* ---------- address autocomplete ---------- */
+fieldset.addr { border: 0; padding: 0; margin: 0; min-width: 0; }
+fieldset.addr legend { padding: 0; margin-bottom: 6px; }
+.addr-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr) 84px; gap: 10px; }
+@media (max-width: 560px) { .addr-grid { grid-template-columns: minmax(0, 1fr) 84px; } .addr-grid > .field:first-child { grid-column: 1 / -1; } }
+.combo { position: relative; }
+.combo-list { position: absolute; z-index: 40; top: calc(100% + 4px); inset-inline: 0; margin: 0; padding: 4px; list-style: none; max-height: 260px; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+.combo-list li { padding: 9px 12px; border-radius: 7px; cursor: pointer; font-size: 15px; }
+.combo-list li.on, .combo-list li:hover { background: var(--accent-soft); }
+
+/* ---------- admin charts ---------- */
+.meter { height: 10px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.meter > span { display: block; height: 100%; border-radius: 99px; background: var(--accent); }
+.chart-tip { position: absolute; top: 0; transform: translateX(-50%); background: var(--ink); color: var(--bg); border-radius: 8px; padding: 5px 10px;
+  display: flex; flex-direction: column; align-items: center; pointer-events: none; font-size: 14px; white-space: nowrap; }
+.chart-tip .muted { color: inherit; opacity: .7; }

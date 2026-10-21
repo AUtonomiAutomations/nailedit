@@ -7,6 +7,7 @@ import QuoteTicket from '@/components/QuoteTicket';
 import PlansSection from '@/components/PlansSection';
 import TradeDemo from '@/components/TradeDemo';
 import TrialText from '@/components/TrialText';
+import TrackView from '@/components/TrackView';
 import { TRADES, getTrade } from '@/lib/trades';
 import { buildQuote, defaultPricing, nis, rangeText } from '@/lib/pricing';
 import { BRAND } from '@/lib/utils';
@@ -31,6 +32,7 @@ export default function TradePage({ params }: { params: { trade: string } }) {
   return (
     <>
       <SiteHeader signupHref={signup} />
+      <TrackView trade={t.slug} />
       <main>
         <section className="hero">
           <div className="container hero-grid">

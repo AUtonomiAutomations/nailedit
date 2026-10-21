@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Logo from '@/components/Logo';
+import AdminOverview from '@/components/AdminOverview';
 import { SUB_STATUS } from '@/components/StatusPill';
 import { useToast } from '@/components/useToast';
 import { db, type AppSettings, type Business, type Plan, type SubscriptionStatus } from '@/lib/db';
@@ -10,13 +11,13 @@ import { resetLocalDemo } from '@/lib/db/local';
 import { TRADES, getTrade } from '@/lib/trades';
 import { daysLeft, fmtDate } from '@/lib/utils';
 
-type Tab = 'businesses' | 'plans' | 'settings';
+type Tab = 'overview' | 'businesses' | 'plans' | 'settings';
 
 export default function AdminPage() {
   const router = useRouter();
   const toast = useToast();
   const [ok, setOk] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<Tab>('businesses');
+  const [tab, setTab] = useState<Tab>('overview');
   const [biz, setBiz] = useState<Business[]>([]);
   const [stats, setStats] = useState<Record<string, { total: number; won: number; last30: number }>>({});
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -49,6 +50,7 @@ export default function AdminPage() {
       <div className="topbar"><div className="container">
         <Logo href="/admin" /><span className="pill st-trialing">ניהול מערכת</span>
         <nav className="tabs">
+          <button className={tab === 'overview' ? 'on' : ''} onClick={() => setTab('overview')}>סקירה</button>
           <button className={tab === 'businesses' ? 'on' : ''} onClick={() => setTab('businesses')}>עסקים</button>
           <button className={tab === 'plans' ? 'on' : ''} onClick={() => setTab('plans')}>מסלולים</button>
           <button className={tab === 'settings' ? 'on' : ''} onClick={() => setTab('settings')}>הגדרות ניסיון</button>
@@ -58,12 +60,13 @@ export default function AdminPage() {
         <button className="btn ghost sm" onClick={async () => { await db().signOut(); router.push('/login'); }}>יציאה</button>
       </div></div>
       <main className="container page">
-        <div className="grid g4" style={{ marginBottom: 18, gap: 14 }}>
+        {tab === 'overview' && <AdminOverview />}
+        {tab !== 'overview' && <div className="grid g4" style={{ marginBottom: 18, gap: 14 }}>
           <div className="stat"><span className="muted small">עסקים רשומים</span><b>{biz.length}</b></div>
           <div className="stat"><span className="muted small">בניסיון / משלמים</span><b>{trialing} / {paying.length}</b></div>
           <div className="stat"><span className="muted small">הכנסה חודשית (MRR)</span><b>₪{mrr.toLocaleString('he-IL')}</b></div>
           <div className="stat"><span className="muted small">בקשות ב-30 יום</span><b>{totals.last30}</b></div>
-        </div>
+        </div>}
 
         {tab === 'businesses' && (
           <div className="card"><div className="table-wrap"><table className="tbl">

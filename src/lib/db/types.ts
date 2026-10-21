@@ -54,6 +54,27 @@ export type QuoteRequest = {
   updated_at: string;
 };
 
+export type EventType = 'page_view' | 'form_view' | 'form_submit' | 'login' | 'app_open' | 'signup';
+export type AppEvent = {
+  type: EventType;
+  path?: string | null;
+  trade_slug?: string | null;
+  business_id?: string | null;
+  user_id?: string | null;
+  session_id?: string | null;
+  referrer?: string | null;
+  created_at?: string;
+};
+export type SignInRow = { user_id: string; email: string; last_sign_in_at: string | null; provider: string };
+/** Raw rows the admin overview is computed from (same shape from both adapters) */
+export type MetricsInput = {
+  businesses: Business[];
+  plans: Plan[];
+  requests: Pick<QuoteRequest, 'business_id' | 'trade_slug' | 'status' | 'created_at' | 'final_price' | 'quote'>[];
+  events: (AppEvent & { created_at: string })[];
+  signIns: SignInRow[];
+};
+
 export type PublicBusiness = Pick<Business, 'id' | 'trade_slug' | 'name' | 'phone' | 'pricing'> & { accepting: boolean };
 export type SessionUser = { id: string; email: string; role: Role };
 
@@ -70,6 +91,11 @@ export interface Repo {
   signUp(email: string, password: string, fullName: string): Promise<SessionUser>;
   signIn(email: string, password: string): Promise<SessionUser>;
   signOut(): Promise<void>;
+  /** Google OAuth (Supabase only). Redirects the browser; returns only on error. */
+  signInWithGoogle(nextPath: string): Promise<void>;
+  // analytics
+  track(e: AppEvent): Promise<void>;
+  adminMetricsInput(days: number): Promise<MetricsInput>;
   // platform
   getSettings(): Promise<AppSettings>;
   updateSettings(patch: Partial<AppSettings>): Promise<void>;

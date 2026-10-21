@@ -4,6 +4,7 @@ import TradeIcon from '@/components/TradeIcon';
 import QuoteTicket from '@/components/QuoteTicket';
 import PlansSection from '@/components/PlansSection';
 import TrialText from '@/components/TrialText';
+import TrackView from '@/components/TrackView';
 import { TRADES, TRADE_MAP } from '@/lib/trades';
 import { buildQuote, defaultPricing } from '@/lib/pricing';
 
@@ -31,6 +32,7 @@ export default function Home() {
   return (
     <>
       <SiteHeader />
+      <TrackView />
       <main>
         {/* HERO */}
         <section className="hero">

@@ -3,8 +3,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AuthShell from '@/components/AuthShell';
+import GoogleButton from '@/components/GoogleButton';
 import { db } from '@/lib/db';
 import { DEMO_ACCOUNTS } from '@/lib/db/local';
+import { track } from '@/lib/track';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,6 +20,7 @@ export default function LoginPage() {
     e?.preventDefault(); setErr(''); setBusy(true);
     try {
       const u = await db().signIn(em, pw);
+      track({ type: 'login', user_id: u.id });
       router.push(u.role === 'admin' ? '/admin' : '/dashboard');
     } catch (e: any) { setErr(e?.message || 'הכניסה נכשלה'); } finally { setBusy(false); }
   }
@@ -32,7 +35,8 @@ export default function LoginPage() {
             <span>{d.label}</span><span className="tiny muted" style={{ direction: 'ltr' }}>{d.email}</span>
           </button>))}
       </div>) : undefined}>
-      <h1 style={{ fontSize: 28, marginBottom: 18 }}>כניסה</h1>
+      <h1 style={{ fontSize: 28, marginBottom: 18 }}>כניסה לבעלי מקצוע</h1>
+      <GoogleButton next="/dashboard" />
       <form onSubmit={go} className="stack" style={{ gap: 14 }}>
         <div className="field"><label htmlFor="l-email">אימייל</label><input id="l-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
         <div className="field"><label htmlFor="l-pass">סיסמה</label><input id="l-pass" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} /></div>

@@ -1,12 +1,12 @@
 // Local demo adapter – same behaviour as the Supabase schema (RLS + triggers), stored in localStorage.
 // Used automatically when NEXT_PUBLIC_SUPABASE_URL is not set.
-import type { AppSettings, Business, Plan, QuoteRequest, Repo, SessionUser } from './types';
+import type { AppEvent, AppSettings, Business, Plan, QuoteRequest, Repo, SessionUser } from './types';
 import { slugify, uid } from '../utils';
 import { TRADE_MAP } from '../trades';
 import { buildQuote, normalizePricing } from '../pricing';
 
-type LocalUser = { id: string; email: string; pass: string; full_name: string; role: 'business' | 'admin' };
-type Store = { users: LocalUser[]; settings: AppSettings; plans: Plan[]; businesses: Business[]; requests: QuoteRequest[] };
+type LocalUser = { id: string; email: string; pass: string; full_name: string; role: 'business' | 'admin'; last_sign_in_at?: string | null };
+type Store = { users: LocalUser[]; settings: AppSettings; plans: Plan[]; businesses: Business[]; requests: QuoteRequest[]; events: (AppEvent & { created_at: string })[] };
 
 const KEY = 'nailedit_db_v1';
 const SESSION = 'nailedit_session';
@@ -59,7 +59,33 @@ function seed(): Store {
     mkReq(plumber, 2, 'רונית שמש', '0505556677', { service: 'heater_fix', units: 1, urgency: 'today', address: 'ביאליק 30, רמת גן' }, null, 'won', 520),
     mkReq(plumber, 3, 'עומר דהן', '0547778899', { service: 'faucet', units: 2, urgency: 'week', address: 'הרצל 100, ראשון לציון' }, null, 'quoted'),
   ];
-  return { users, settings, plans: DEFAULT_PLANS, businesses: [movers, plumber], requests };
+  users[1].last_sign_in_at = ago(0, 2); users[2].last_sign_in_at = ago(1, 5);
+  return { users, settings, plans: DEFAULT_PLANS, businesses: [movers, plumber], requests, events: demoEvents([movers, plumber]) };
+}
+
+/** ~30 days of plausible demo traffic so the admin overview isn't empty in demo mode */
+function demoEvents(biz: Business[]): (AppEvent & { created_at: string })[] {
+  const out: (AppEvent & { created_at: string })[] = [];
+  let seedN = 7; const rnd = () => ((seedN = (seedN * 16807) % 2147483647) / 2147483647);
+  const trades = Object.keys(TRADE_MAP);
+  for (let d = 29; d >= 0; d--) {
+    const visitors = 12 + Math.round(rnd() * 25 + (29 - d) * 0.6);
+    for (let i = 0; i < visitors; i++) {
+      const sid = `demo-${d}-${i}`; const t = trades[Math.floor(rnd() * trades.length)];
+      out.push({ type: 'page_view', path: rnd() < 0.5 ? '/' : `/${t}`, trade_slug: rnd() < 0.5 ? null : t, session_id: sid, created_at: ago(d, rnd() * 20) });
+      if (rnd() < 0.18) out.push({ type: 'page_view', path: '/signup', trade_slug: t, session_id: sid, created_at: ago(d, rnd() * 20) });
+    }
+    for (const b of biz) {
+      if (rnd() < 0.8) out.push({ type: 'app_open', business_id: b.id, trade_slug: b.trade_slug, created_at: ago(d, rnd() * 12) });
+      const views = Math.round(rnd() * 6);
+      for (let i = 0; i < views; i++) {
+        out.push({ type: 'form_view', business_id: b.id, trade_slug: b.trade_slug, session_id: `c-${d}-${i}`, created_at: ago(d, rnd() * 12) });
+        if (rnd() < 0.45) out.push({ type: 'form_submit', business_id: b.id, trade_slug: b.trade_slug, session_id: `c-${d}-${i}`, created_at: ago(d, rnd() * 12) });
+      }
+    }
+  }
+  for (const b of biz) out.push({ type: 'signup', business_id: b.id, trade_slug: b.trade_slug, created_at: b.created_at });
+  return out;
 }
 
 const safe = {
@@ -70,7 +96,7 @@ const safe = {
 
 export function localRepo(): Repo {
   const load = (): Store => {
-    try { const s = safe.get(KEY); if (s) return JSON.parse(s); } catch { /* reseed */ }
+    try { const s = safe.get(KEY); if (s) { const st = JSON.parse(s); st.events ||= []; return st; } } catch { /* reseed */ }
     const s = seed(); safe.set(KEY, JSON.stringify(s)); return s;
   };
   const save = (s: Store) => safe.set(KEY, JSON.stringify(s));
@@ -90,14 +116,28 @@ export function localRepo(): Repo {
     async signUp(email, password, fullName) {
       const s = load(); email = email.trim().toLowerCase();
       if (s.users.some((u) => u.email === email)) throw new Error('האימייל כבר רשום. נסו להתחבר.');
-      const u: LocalUser = { id: uid(), email, pass: hash(password), full_name: fullName, role: 'business' };
+      const u: LocalUser = { id: uid(), email, pass: hash(password), full_name: fullName, role: 'business', last_sign_in_at: now() };
       s.users.push(u); save(s); safe.set(SESSION, u.id); return toSession(u);
     },
     async signIn(email, password) {
       const s = load(); const u = s.users.find((x) => x.email === email.trim().toLowerCase() && x.pass === hash(password));
-      if (!u) throw new Error('אימייל או סיסמה שגויים'); safe.set(SESSION, u.id); return toSession(u);
+      if (!u) throw new Error('אימייל או סיסמה שגויים');
+      u.last_sign_in_at = now(); save(s); safe.set(SESSION, u.id); return toSession(u);
     },
     async signOut() { safe.del(SESSION); },
+    async signInWithGoogle() { throw new Error('כניסה עם Google זמינה רק כשהמערכת מחוברת ל-Supabase'); },
+    async track(e) { const s = load(); s.events.push({ ...e, created_at: now() }); save(s); },
+    async adminMetricsInput(days) {
+      const s = load(); requireAdmin(s);
+      const since = Date.now() - days * 86400000;
+      const inRange = (d: string) => new Date(d).getTime() >= since;
+      return {
+        businesses: s.businesses, plans: s.plans,
+        requests: s.requests.filter((r) => inRange(r.created_at)),
+        events: s.events.filter((e) => inRange(e.created_at)),
+        signIns: s.users.map((u) => ({ user_id: u.id, email: u.email, last_sign_in_at: u.last_sign_in_at ?? null, provider: 'email' })),
+      };
+    },
 
     async getSettings() { return load().settings; },
     async updateSettings(patch) { const s = load(); requireAdmin(s); s.settings = { ...s.settings, ...patch, updated_at: now() }; save(s); },

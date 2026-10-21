@@ -7,10 +7,16 @@ import { db, type PublicBusiness } from '@/lib/db';
 import { getTrade } from '@/lib/trades';
 import { normalizePricing } from '@/lib/pricing';
 import { BRAND, cityFromAddress, uid } from '@/lib/utils';
+import { track } from '@/lib/track';
 
 export default function CustomerQuotePage({ params }: { params: { slug: string } }) {
   const [biz, setBiz] = useState<PublicBusiness | null | undefined>(undefined);
-  useEffect(() => { db().getPublicBusiness(params.slug).then(setBiz).catch(() => setBiz(null)); }, [params.slug]);
+  useEffect(() => {
+    db().getPublicBusiness(params.slug).then((b) => {
+      setBiz(b);
+      if (b) track({ type: 'form_view', business_id: b.id, trade_slug: b.trade_slug });
+    }).catch(() => setBiz(null));
+  }, [params.slug]);
 
   if (biz === undefined) return <div className="empty">טוען…</div>;
   const trade = biz && getTrade(biz.trade_slug);
@@ -25,6 +31,7 @@ export default function CustomerQuotePage({ params }: { params: { slug: string }
       address, city: cityFromAddress(address) || null, answers: s.answers, distance_km: s.distance?.km ?? null,
       distance_source: s.distance?.source ?? null, quote: s.quote,
     });
+    track({ type: 'form_submit', business_id: biz!.id, trade_slug: trade!.slug });
   }
 
   return (

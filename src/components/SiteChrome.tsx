@@ -30,7 +30,7 @@ export function SiteFooter() {
         <div className="chips">
           {TRADES.map((t) => <Link key={t.slug} href={`/${t.slug}`} className="chip">{t.name}</Link>)}
         </div>
-        <div className="row"><span>© {new Date().getFullYear()} {BRAND}</span><span className="spacer" /><Link href="/login">כניסה לבעלי עסקים</Link></div>
+        <div className="row"><span>© {new Date().getFullYear()} {BRAND}</span><span className="spacer" /><Link href="/privacy">מדיניות פרטיות</Link><Link href="/terms">תנאי שימוש</Link><Link href="/login">כניסה לבעלי עסקים</Link></div>
       </div>
     </footer>
   );

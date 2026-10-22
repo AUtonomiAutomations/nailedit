@@ -183,10 +183,10 @@ function QuoteResult({ trade, pricing, s, businessName, businessPhone, demo, onB
       {trade.distance && s.distance?.source === 'none' && <p className="small" style={{ color: 'var(--warn)' }}>לא הצלחנו לחשב מרחק אוטומטית – המחיר לא כולל נסיעה ויעודכן בשיחה.</p>}
       {trade.distance && km != null && s.distance && <p className="tiny muted">מרחק: {DISTANCE_SOURCE_LABEL[s.distance.source]}</p>}
       <div className="card stack" style={{ textAlign: 'center' }}>
-        <h3 style={{ fontSize: 20 }}>{demo ? 'ככה הלקוח רואה את ההצעה' : 'הבקשה התקבלה'}</h3>
+        <h3 style={{ fontSize: 22 }}>{demo ? 'ככה הלקוח רואה את ההצעה' : 'קיבלנו את פנייתך, נציג מטעם העסק יחזור אליך בהקדם!'}</h3>
         <p className="muted">{demo
           ? 'באותו רגע הבקשה מופיעה אצלך בלוח, עם כל הפרטים, כפתור וואטסאפ וכפתור ניווט.'
-          : `זו הערכה ראשונית לפי מה שמילאת. ${businessName} יחזרו אליך לאישור המחיר הסופי ותיאום מועד.`}</p>
+          : `המחיר שמופיע למעלה הוא הערכה ראשונית לפי מה שמילאת. ${businessName} יאשרו מחיר סופי ויתאמו איתך מועד.`}</p>
         {!demo && businessPhone && <a className="btn wa block" target="_blank" rel="noopener" href={waLink(businessPhone, summary)}>שליחת הפרטים בוואטסאפ</a>}
         {demo && <button type="button" className="btn ghost" onClick={onBack}>חזרה לטופס – שנו פרטים</button>}
       </div>

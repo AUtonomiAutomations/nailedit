@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>הצעת מחיר – הובלות המקצוענים</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  /* One A4 page. Only the business block + the job data change per quote; layout is shared by every business. */
+  @page { size: A4; margin: 0; }
+  :root { --ink: #16181d; --ink2: #3d4350; --muted: #6f7686; --line: #dfe2e8; --soft: #f4f5f7; --brand: #1f2633; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #e9ebef; }
+  body { font-family: 'Heebo', Arial, sans-serif; color: var(--ink); font-size: 12.5px; line-height: 1.55; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { width: 210mm; min-height: 297mm; margin: 0 auto; background: #fff; padding: 16mm 16mm 14mm; display: flex; flex-direction: column; gap: 18px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; padding-bottom: 16px; border-bottom: 3px solid var(--brand); }
+  .biz-name { font-size: 26px; font-weight: 800; letter-spacing: -.3px; margin: 0 0 4px; }
+  .biz-meta { color: var(--ink2); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+  .doc { text-align: left; min-width: 190px; }
+  .doc-title { font-size: 22px; font-weight: 800; color: var(--brand); margin: 0 0 6px; text-align: right; }
+  .doc dl { display: grid; grid-template-columns: auto auto; gap: 2px 12px; margin: 0; justify-content: end; }
+  .doc dt { color: var(--muted); text-align: right; } .doc dd { margin: 0; font-weight: 600; text-align: right; }
+
+  .two { display: grid; grid-template-columns: 1fr 1.25fr; gap: 14px; }
+  .box { background: var(--soft); border-radius: 8px; padding: 12px 14px; }
+  .box h3 { margin: 0 0 8px; font-size: 11.5px; font-weight: 700; letter-spacing: .04em; color: var(--muted); }
+  .box p { margin: 0; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; }
+  .kv dt { color: var(--muted); white-space: nowrap; } .kv dd { margin: 0; font-weight: 500; }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead th { background: var(--brand); color: #fff; font-weight: 600; font-size: 11.5px; padding: 8px 10px; text-align: right; }
+  thead th:first-child { border-radius: 0 6px 0 0; width: 34px; text-align: center; }
+  thead th:last-child { border-radius: 6px 0 0 0; text-align: left; width: 110px; }
+  tbody td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tbody td:first-child { text-align: center; color: var(--muted); }
+  tbody td:last-child { text-align: left; font-weight: 600; white-space: nowrap; direction: ltr; }
+  tr.adj td { color: var(--ink2); font-style: italic; }
+
+  .totals { margin-inline-start: auto; width: 260px; display: grid; grid-template-columns: 1fr auto; gap: 5px 16px; }
+  .totals .l { color: var(--ink2); } .totals .v { text-align: left; font-weight: 600; direction: ltr; }
+  .totals .grand { border-top: 2px solid var(--ink); padding-top: 8px; margin-top: 4px; font-size: 17px; font-weight: 800; }
+  .totals .grand.v { color: var(--brand); }
+
+  .terms { color: var(--ink2); font-size: 11.5px; }
+  .terms h3 { font-size: 12.5px; margin: 0 0 6px; color: var(--ink); }
+  .terms ol { margin: 0; padding-inline-start: 18px; display: grid; gap: 2px; }
+
+  .sign { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 22px; margin-top: auto; padding-top: 26px; }
+  .sign div { border-top: 1px solid var(--ink2); padding-top: 5px; color: var(--muted); font-size: 11px; }
+
+  footer { display: flex; justify-content: space-between; color: var(--muted); font-size: 10.5px; border-top: 1px solid var(--line); padding-top: 8px; }
+  @media print { html, body { background: #fff; } .page { margin: 0; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div>
+      <h1 class="biz-name">הובלות המקצוענים</h1>
+      <div class="biz-meta">
+        <span>יוסי כהן</span><span class="num">050-123-4567</span><span>yossi@hamikzoanim.co.il</span><span>תל אביב והמרכז</span>
+      </div>
+    </div>
+    <div class="doc">
+      <h2 class="doc-title">הצעת מחיר</h2>
+      <dl class="num">
+        <dt>מספר</dt><dd>2026-0042</dd>
+        <dt>תאריך</dt><dd>22.10.2026</dd>
+        <dt>בתוקף עד</dt><dd>05.11.2026</dd>
+      </dl>
+    </div>
+  </header>
+
+  <div class="two">
+    <div class="box">
+      <h3>לכבוד</h3>
+      <p style="font-size:15px;font-weight:700;margin-bottom:2px">דנה לוי</p>
+      <p class="num">052-765-4321</p>
+      <p>הרצל 12, תל אביב</p>
+    </div>
+    <div class="box">
+      <h3>פרטי העבודה – הובלת דירה</h3>
+      <dl class="kv">
+        <dt>איסוף</dt><dd>הרצל 12, תל אביב · קומה 3, ללא מעלית</dd>
+        <dt>פריקה</dt><dd>ויצמן 40, כפר סבא · קומה 1, יש מעלית</dd>
+        <dt>מרחק</dt><dd class="num">24.6 ק״מ</dd>
+        <dt>תאריך מבוקש</dt><dd class="num">10.11.2026</dd>
+      </dl>
+    </div>
+  </div>
+
+  <table class="num">
+    <thead><tr><th>#</th><th>תיאור</th><th>סכום</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>מחיר בסיס – משאית וצוות</td><td>₪600</td></tr>
+      <tr><td>2</td><td>נסיעה – 24.6 ק״מ</td><td>₪148</td></tr>
+      <tr><td>3</td><td>ארגזים – 35 יח׳</td><td>₪525</td></tr>
+      <tr><td>4</td><td>איסוף – קומה 3 ללא מעלית</td><td>₪180</td></tr>
+      <tr><td>5</td><td>פריקה – קומה 1 עם מעלית</td><td>₪15</td></tr>
+      <tr><td>6</td><td>ספה תלת-מושבית</td><td>₪250</td></tr>
+      <tr><td>7</td><td>מקרר</td><td>₪250</td></tr>
+      <tr><td>8</td><td>מכונת כביסה</td><td>₪150</td></tr>
+      <tr><td>9</td><td>מיטה זוגית</td><td>₪200</td></tr>
+      <tr class="adj"><td>10</td><td>הנחה / התאמת מחיר</td><td>−₪118</td></tr>
+    </tbody>
+  </table>
+
+  <div class="totals num">
+    <span class="l">סכום לפני מע״מ</span><span class="v">₪1,864.41</span>
+    <span class="l">מע״מ 18%</span><span class="v">₪335.59</span>
+    <span class="l grand">סה״כ לתשלום</span><span class="v grand">₪2,200</span>
+  </div>
+
+  <div class="terms">
+    <h3>תנאים</h3>
+    <ol>
+      <li>ההצעה בתוקף 14 יום ממועד הוצאתה.</li>
+      <li>המחיר מבוסס על הפרטים שנמסרו. שינוי בהיקף העבודה או בתנאי הגישה עשוי לשנות את המחיר.</li>
+      <li>אישור ההצעה ותיאום מועד – בוואטסאפ או בטלפון: 050-123-4567.</li>
+    </ol>
+  </div>
+
+  <div class="sign">
+    <div>שם הלקוח</div><div>חתימה</div><div>תאריך</div>
+  </div>
+
+  <footer><span>הובלות המקצוענים · הצעה מס׳ 2026-0042</span><span>הופק באמצעות NailedIt</span></footer>
+</div>
+</body>
+</html>

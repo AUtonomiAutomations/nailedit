@@ -5,7 +5,11 @@ import { answerRowsBySection } from '@/lib/answers';
 import { buildQuoteDoc, ils2, quoteNo } from '@/lib/quoteDoc';
 import { BRAND } from '@/lib/utils';
 
-const d = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '');
+// Always Israel time – the PDF is rendered on a UTC server
+const TZ = 'Asia/Jerusalem';
+const d = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: TZ }) : '');
+const dt = (iso: string) => new Date(iso).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: TZ });
+const Check = () => <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden style={{ verticalAlign: '-1px', marginInlineEnd: 4 }}><path d="M2 6.5 5 9.5 10 3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 
 /** The A4 quote – same layout for every business; only the business block, logo and job data change. */
 export default function QuoteDocument({ data }: { data: PublicQuote }) {
@@ -87,7 +91,7 @@ export default function QuoteDocument({ data }: { data: PublicQuote }) {
         <div>{r.signature_data ? <img src={r.signature_data} alt="חתימת הלקוח" className="qd-sigimg" /> : <i aria-hidden />}<span>חתימה</span></div>
         <div><b className="num">{d(r.signed_at || r.issued_at)}</b><span>תאריך</span></div>
       </div>
-      {r.signed_at && <p className="qd-signed">✓ ההצעה אושרה ונחתמה דיגיטלית ע״י {r.signer_name} ב-{new Date(r.signed_at).toLocaleString('he-IL')}</p>}
+      {r.signed_at && <p className="qd-signed"><Check />ההצעה אושרה ונחתמה דיגיטלית ע״י {r.signer_name} ב-{dt(r.signed_at)}</p>}
 
       <footer className="qd-foot"><span>{b.name} · הצעה מס׳ {no}</span><span>הופק באמצעות {BRAND}</span></footer>
     </article>

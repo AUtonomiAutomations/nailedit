@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useBiz } from '@/components/BizContext';
 import { SUB_STATUS } from '@/components/StatusPill';
 import { useToast } from '@/components/useToast';
+import LogoUpload from '@/components/LogoUpload';
 import { db } from '@/lib/db';
 import { daysLeft, fmtDate } from '@/lib/utils';
 
@@ -34,6 +35,7 @@ export default function AccountPage() {
           <button className="btn" style={{ alignSelf: 'flex-start' }}>שמירה</button>
         </form>
         <div className="stack">
+          <LogoUpload business={business} onSaved={refresh} />
           <div className="card stack" style={{ gap: 8 }}>
             <h3>המנוי שלך</h3>
             <div className="row"><span className={`pill st-${business.subscription_status}`}>{SUB_STATUS[business.subscription_status]}</span><b>{current?.name || '—'}</b></div>

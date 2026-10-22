@@ -1,6 +1,7 @@
 // Local demo adapter – same behaviour as the Supabase schema (RLS + triggers), stored in localStorage.
 // Used automatically when NEXT_PUBLIC_SUPABASE_URL is not set.
-import type { AppEvent, AppSettings, Business, Plan, QuoteRequest, Repo, SessionUser } from './types';
+import type { AppEvent, AppSettings, Business, Plan, PublicQuote, QuoteRequest, Repo, SessionUser } from './types';
+import { QUOTE_VALID_DAYS } from '../quoteDoc';
 import { slugify, uid } from '../utils';
 import { TRADE_MAP } from '../trades';
 import { buildQuote, normalizePricing } from '../pricing';
@@ -35,7 +36,7 @@ function seed(): Store {
   ];
   const mkBiz = (owner: LocalUser, trade: string, name: string, phone: string, slug: string, daysAgo: number): Business => ({
     id: uid(), owner_id: owner.id, trade_slug: trade, name, contact_name: owner.full_name, phone, email: owner.email, city: 'תל אביב',
-    public_slug: slug, pricing: normalizePricing(TRADE_MAP[trade]), plan_id: 'pro', subscription_status: 'trialing',
+    public_slug: slug, pricing: normalizePricing(TRADE_MAP[trade]), logo_data: null, plan_id: 'pro', subscription_status: 'trialing',
     trial_ends_at: new Date(Date.now() + (30 - daysAgo) * 86400000).toISOString(), created_at: ago(daysAgo), updated_at: ago(daysAgo),
   });
   const movers = mkBiz(users[1], 'movers', 'הובלות המקצוענים', '0501234567', 'demo-movers', 12);
@@ -47,7 +48,7 @@ function seed(): Store {
     return {
       id: uid(), business_id: b.id, trade_slug: b.trade_slug, customer_name: name, customer_phone: phone, address: addr,
       city: addr.split(',').pop()?.trim() || null, answers, distance_km: km, distance_source: km != null ? 'osm' : null,
-      quote: buildQuote(t, answers, normalizePricing(t, b.pricing), km), status, final_price: final, internal_notes: null,
+      quote: buildQuote(t, answers, normalizePricing(t, b.pricing), km), status, final_price: final, internal_notes: null, ...NO_QUOTE,
       created_at: ago(days, 3), updated_at: ago(days, 3),
     };
   };
@@ -87,6 +88,9 @@ function demoEvents(biz: Business[]): (AppEvent & { created_at: string })[] {
   for (const b of biz) out.push({ type: 'signup', business_id: b.id, trade_slug: b.trade_slug, created_at: b.created_at });
   return out;
 }
+
+const NO_QUOTE = { discount_type: null, discount_value: null, quote_token: null, quote_number: null, issued_at: null,
+  valid_until: null, signed_at: null, signer_name: null, signature_data: null } as const;
 
 const safe = {
   get(k: string) { try { return localStorage.getItem(k); } catch { return null; } },
@@ -149,7 +153,7 @@ export function localRepo(): Repo {
       const s = load(); const u = me(s); if (!u) throw new Error('not signed in');
       // mirrors triggers protect_billing_fields + set_business_trial
       const b: Business = {
-        ...input, id: uid(), owner_id: u.id, email: u.email, public_slug: slugify(input.name, input.trade_slug),
+        ...input, id: uid(), owner_id: u.id, email: u.email, public_slug: slugify(input.name, input.trade_slug), logo_data: null,
         plan_id: s.settings.trial_plan_id, subscription_status: 'trialing',
         trial_ends_at: new Date(Date.now() + s.settings.trial_days * 86400000).toISOString(), created_at: now(), updated_at: now(),
       };
@@ -159,8 +163,8 @@ export function localRepo(): Repo {
     async updateMyBusiness(id, patch) {
       const s = load(); const u = me(s); const b = s.businesses.find((x) => x.id === id);
       if (!b || !u || (b.owner_id !== u.id && u.role !== 'admin')) throw new Error('אין הרשאה');
-      const { name, contact_name, phone, city, pricing } = patch; // owners can't touch billing fields
-      Object.assign(b, Object.fromEntries(Object.entries({ name, contact_name, phone, city, pricing }).filter(([, v]) => v !== undefined)), { updated_at: now() });
+      const { name, contact_name, phone, city, pricing, logo_data } = patch; // owners can't touch billing fields
+      Object.assign(b, Object.fromEntries(Object.entries({ name, contact_name, phone, city, pricing, logo_data }).filter(([, v]) => v !== undefined)), { updated_at: now() });
       save(s);
     },
     async listRequests(businessId) {
@@ -170,6 +174,38 @@ export function localRepo(): Repo {
     },
     async getRequest(id) { return ownsRequest(load(), id); },
     async updateRequest(id, patch) { const s = load(); const r = ownsRequest(s, id); if (!r) throw new Error('אין הרשאה'); Object.assign(r, patch, { updated_at: now() }); save(s); },
+    async issueQuote(id, input) {
+      const s = load(); const r = ownsRequest(s, id); if (!r) throw new Error('אין הרשאה');
+      if (r.signed_at) throw new Error('ההצעה כבר נחתמה');
+      const nextNo = 1 + Math.max(0, ...s.requests.filter((x) => x.business_id === r.business_id).map((x) => x.quote_number || 0));
+      Object.assign(r, input, {
+        quote_token: r.quote_token || (uid() + uid()).replace(/-/g, ''), quote_number: r.quote_number || nextNo,
+        issued_at: now(), valid_until: new Date(Date.now() + QUOTE_VALID_DAYS * 86400000).toISOString().slice(0, 10),
+        status: r.status === 'new' ? 'quoted' : r.status, updated_at: now(),
+      });
+      save(s);
+      return { quote_token: r.quote_token, quote_number: r.quote_number, issued_at: r.issued_at, valid_until: r.valid_until };
+    },
+    async getPublicQuote(token) {
+      const s = load(); const r = s.requests.find((x) => x.quote_token === token && x.issued_at);
+      const b = r && s.businesses.find((x) => x.id === r.business_id);
+      if (!r || !b) return null;
+      const { id, trade_slug, customer_name, customer_phone, address, answers, distance_km, quote, discount_type, discount_value, final_price,
+        quote_number, issued_at, valid_until, signed_at, signer_name, signature_data } = r;
+      return {
+        request: { id, trade_slug, customer_name, customer_phone, address, answers, distance_km, quote, discount_type, discount_value, final_price,
+          quote_number, issued_at, valid_until, signed_at, signer_name, signature_data },
+        business: { id: b.id, name: b.name, contact_name: b.contact_name, phone: b.phone, email: b.email, city: b.city, logo_data: b.logo_data, trade_slug: b.trade_slug, pricing: b.pricing },
+      } satisfies PublicQuote;
+    },
+    async signQuote(token, signerName, sig) {
+      const s = load(); const r = s.requests.find((x) => x.quote_token === token && x.issued_at);
+      if (!r || r.signed_at) throw new Error('ההצעה לא נמצאה או כבר נחתמה');
+      if (r.valid_until && r.valid_until < new Date().toISOString().slice(0, 10)) throw new Error('תוקף ההצעה פג');
+      Object.assign(r, { signed_at: now(), signer_name: signerName.trim(), signature_data: sig, status: 'won', updated_at: now() });
+      s.events.push({ type: 'quote_signed', business_id: r.business_id, trade_slug: r.trade_slug, created_at: now() });
+      save(s); return r.signed_at!;
+    },
     async deleteRequest(id) { const s = load(); if (!ownsRequest(s, id)) throw new Error('אין הרשאה'); s.requests = s.requests.filter((r) => r.id !== id); save(s); },
 
     async getPublicBusiness(slug) {
@@ -179,7 +215,7 @@ export function localRepo(): Repo {
     async submitRequest(req) {
       const s = load(); const b = s.businesses.find((x) => x.id === req.business_id);
       if (!b || !accepting(b)) throw new Error('העסק לא מקבל בקשות כרגע');
-      s.requests.push({ ...req, status: 'new', final_price: null, internal_notes: null, created_at: now(), updated_at: now() }); save(s);
+      s.requests.push({ ...req, ...NO_QUOTE, status: 'new', final_price: null, internal_notes: null, created_at: now(), updated_at: now() }); save(s);
     },
 
     async listBusinesses() { const s = load(); requireAdmin(s); return [...s.businesses].sort((a, b) => b.created_at.localeCompare(a.created_at)); },

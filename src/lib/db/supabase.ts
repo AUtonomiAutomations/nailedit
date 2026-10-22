@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { AppSettings, Business, MetricsInput, Plan, PublicBusiness, QuoteRequest, Repo, SessionUser } from './types';
-import { slugify } from '../utils';
+import type { AppSettings, Business, IssuedQuote, MetricsInput, Plan, PublicBusiness, PublicQuote, QuoteRequest, Repo, SessionUser } from './types';
+import { QUOTE_VALID_DAYS } from '../quoteDoc';
+import { slugify, uid } from '../utils';
 
 function must<T>(r: { data: T; error: any }): T {
   if (r.error) throw new Error(r.error.message);
@@ -87,6 +88,31 @@ export function supabaseRepo(url: string, anonKey: string): Repo {
     async getRequest(id) { return must(await sb.from('quote_requests').select('*').eq('id', id).maybeSingle()) as QuoteRequest | null; },
     async updateRequest(id, patch) { must(await sb.from('quote_requests').update(patch).eq('id', id)); },
     async deleteRequest(id) { must(await sb.from('quote_requests').delete().eq('id', id)); },
+    async issueQuote(id, input) {
+      const cur = must(await sb.from('quote_requests').select('business_id, status, quote_token, quote_number, signed_at').eq('id', id).single()) as QuoteRequest;
+      if (cur.signed_at) throw new Error('ההצעה כבר נחתמה');
+      let quote_number = cur.quote_number;
+      if (!quote_number) {
+        const last = must(await sb.from('quote_requests').select('quote_number').eq('business_id', cur.business_id)
+          .not('quote_number', 'is', null).order('quote_number', { ascending: false }).limit(1)) as { quote_number: number }[];
+        quote_number = (last[0]?.quote_number || 0) + 1;
+      }
+      const patch = {
+        ...input, quote_number, quote_token: cur.quote_token || (uid() + uid()).replace(/-/g, ''),
+        issued_at: new Date().toISOString(), valid_until: new Date(Date.now() + QUOTE_VALID_DAYS * 86400000).toISOString().slice(0, 10),
+        status: cur.status === 'new' ? 'quoted' : cur.status,
+      };
+      must(await sb.from('quote_requests').update(patch).eq('id', id));
+      return { quote_token: patch.quote_token, quote_number, issued_at: patch.issued_at, valid_until: patch.valid_until } as IssuedQuote;
+    },
+    async getPublicQuote(token) {
+      return (must(await sb.rpc('get_public_quote', { p_token: token })) as PublicQuote | null) || null;
+    },
+    async signQuote(token, signerName, sig) {
+      const { data, error } = await sb.rpc('sign_quote', { p_token: token, p_name: signerName, p_signature: sig });
+      if (error) throw new Error(error.message.includes('expired') || error.message.includes('already') ? 'ההצעה כבר נחתמה או שתוקפה פג' : 'החתימה נכשלה, נסו שוב');
+      return data as string;
+    },
 
     async getPublicBusiness(slug) {
       const rows = must(await sb.rpc('get_public_business', { p_slug: slug })) as PublicBusiness[];
